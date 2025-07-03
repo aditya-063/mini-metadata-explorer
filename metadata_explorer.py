@@ -108,7 +108,7 @@ class DataProfiler:
     @staticmethod
     def detect_outliers_iqr(series: pd.Series) -> List[int]:
         """Detect outliers using IQR method"""
-        if not pd.api.types.is_numeric_dtype(series):
+        if not pd.api.types.is_numeric_dtype(series) or pd.api.types.is_bool_dtype(series):
             return []
         
         Q1 = series.quantile(0.25)
@@ -123,7 +123,7 @@ class DataProfiler:
     @staticmethod
     def detect_outliers_zscore(series: pd.Series, threshold: float = 3) -> List[int]:
         """Detect outliers using Z-score method"""
-        if not pd.api.types.is_numeric_dtype(series):
+        if not pd.api.types.is_numeric_dtype(series) or pd.api.types.is_bool_dtype(series):
             return []
         
         z_scores = np.abs((series - series.mean()) / series.std())
@@ -483,11 +483,11 @@ class DataQualityRules:
                 if pd.api.types.is_numeric_dtype(col_data):
                     valid = True
                     if min_val is not None:
-                        valid &= (col_data >= min_val).all()
+                        valid = valid and (col_data >= min_val).all()
                     if max_val is not None:
-                        valid &= (col_data <= max_val).all()
+                        valid = valid and (col_data <= max_val).all()
                     passed = valid
-                    
+
                     # Count violations
                     violations_mask = pd.Series([False] * len(col_data))
                     if min_val is not None:
@@ -496,6 +496,7 @@ class DataQualityRules:
                         violations_mask |= (col_data > max_val)
                     violation_count = violations_mask.sum()
                     violations = df[violations_mask].index.tolist()[:10]
+
             
             results.append({
                 'rule': rule,
